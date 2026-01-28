@@ -1,36 +1,105 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Chore Champions 🏆
+
+A gamified team chore tracking application with points, streaks, and leaderboards.
+
+## Features
+
+- 🎯 **Team Chores** - Create and assign chores to team members
+- 🔄 **Flexible Scheduling** - Daily, weekly, bi-weekly, and monthly chores with start dates
+- 🏅 **Gamification** - Earn points, maintain streaks, climb the leaderboard
+- 📊 **GitHub-style Activity Graph** - Track your completion history
+- 🎉 **Confetti Celebrations** - Celebrate completing tasks
+- 🖱️ **Drag & Drop** - Kanban-style board to manage tasks
+- 🌙 **Dark Mode** - Beautiful dark theme support
+- 📱 **Responsive** - Works on desktop and mobile
+
+## Tech Stack
+
+- **Frontend**: Next.js 16, React 19, TypeScript, Tailwind CSS 4
+- **Backend**: Next.js API Routes, MongoDB, Mongoose
+- **Auth**: JWT with bcryptjs
+- **UI**: Lucide Icons, @dnd-kit for drag-and-drop
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js 18+
+- MongoDB instance (local or cloud)
+
+### Installation
+
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/yourusername/chore-champions.git
+cd chore-champions
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Create `.env.local` file:
+```bash
+cp .env.example .env.local
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Update environment variables in `.env.local`:
+```env
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_secure_jwt_secret
+```
 
-## Learn More
+5. Run the development server:
+```bash
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deployment on Railway
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Quick Deploy
 
-## Deploy on Vercel
+1. Push your code to GitHub
+2. Go to [Railway](https://railway.app) and create a new project
+3. Select "Deploy from GitHub repo"
+4. Add environment variables in Railway dashboard:
+   - `MONGODB_URI` - Your MongoDB connection string
+   - `JWT_SECRET` - A secure random string (generate with `openssl rand -base64 32`)
+5. Railway will automatically build and deploy!
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Environment Variables
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Variable | Description |
+|----------|-------------|
+| `MONGODB_URI` | MongoDB connection string |
+| `JWT_SECRET` | Secret key for JWT tokens |
+| `NODE_ENV` | Set to `production` automatically |
+| `PORT` | Set by Railway automatically |
+
+## Scripts
+
+- `npm run dev` - Development server with Turbopack
+- `npm run build` - Production build
+- `npm start` - Production server
+- `npm run lint` - Run ESLint
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/health` | Health check |
+| POST | `/api/auth/signup` | Create account |
+| POST | `/api/auth/login` | Login |
+| GET | `/api/auth/me` | Get current user |
+| GET | `/api/chores` | List chores (filtered by schedule) |
+| POST | `/api/chores` | Create chore |
+| PATCH | `/api/chores/:id/toggle` | Toggle completion |
+| DELETE | `/api/chores/:id` | Delete chore |
+| GET | `/api/team/members` | Get team members |
+
+## License
+
+MIT

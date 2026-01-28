@@ -1,7 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  devIndicators: false,
+  // Production optimizations
+  poweredByHeader: false,
+  compress: true,
+  // Output standalone for containerized deployments
+  output: "standalone",
 };
 
 export default nextConfig;

@@ -5,60 +5,12 @@ import { AuthScreen } from '@/components/AuthScreen';
 import { ChoreCard } from '@/components/ChoreCard';
 import { AddChoreModal } from '@/components/AddChoreModal';
 import { ProfileModal } from '@/components/ProfileModal';
-import { MiniLeaderboard } from '@/components/MiniLeaderboard';
+import { LeaderboardDropdown } from '@/components/LeaderboardDropdown';
 import { Chore, ChoreFrequency } from '@/types/chore';
-import { Plus, Calendar, Flame, Trophy, Loader2 } from 'lucide-react';
+import { Plus, Calendar, Flame, Trophy, Loader2, CheckCircle2, CalendarDays } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import confetti from 'canvas-confetti';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-  useDroppable,
-} from '@dnd-kit/core';
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-
-// Droppable Column Component
-function DroppableColumn({ 
-  id, 
-  children, 
-  title, 
-  count 
-}: { 
-  id: string; 
-  children: React.ReactNode; 
-  title: string; 
-  count: number 
-}) {
-  const { setNodeRef, isOver } = useDroppable({ id });
-
-  return (
-    <div
-      ref={setNodeRef}
-      className={`flex-1 rounded-2xl p-4 transition-all duration-200 ${
-        isOver 
-          ? 'bg-indigo-50 dark:bg-indigo-950/20 ring-2 ring-indigo-300 dark:ring-indigo-600' 
-          : 'bg-slate-50/80 dark:bg-slate-900/40'
-      }`}
-    >
-      <div className="flex items-center gap-2 mb-4">
-        <h3 className="font-semibold text-slate-800 dark:text-slate-200">{title}</h3>
-        <span className="text-xs bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full">
-          {count}
-        </span>
-      </div>
-      <div className="space-y-3 min-h-[200px]">{children}</div>
-    </div>
-  );
-}
+import Link from 'next/link';
 
 export default function Home() {
   const { user, team, isAuthenticated, isLoading, userStats, teamMembers, refreshTeamMembers } = useAuth();
@@ -67,11 +19,7 @@ export default function Home() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [loadingChores, setLoadingChores] = useState(true);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
+  const [editingChore, setEditingChore] = useState<Chore | null>(null);
 
   // Format today's date
   const today = new Date();
@@ -90,7 +38,6 @@ export default function Home() {
       });
       if (response.ok) {
         const data = await response.json();
-        // API returns { success, chores } object
         setChores(data.chores || []);
       }
     } catch (error) {
@@ -109,9 +56,13 @@ export default function Home() {
   const handleToggleChore = async (choreId: string) => {
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`/api/chores/${choreId}/toggle`, {
-        method: 'POST',
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      const response = await fetch(`/api/chores/${choreId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ action: 'toggle' }),
       });
       
       if (response.ok) {
@@ -135,6 +86,8 @@ export default function Home() {
   };
 
   const handleDeleteChore = async (choreId: string) => {
+    if (!confirm('Are you sure you want to delete this chore?')) return;
+    
     try {
       const token = localStorage.getItem('auth_token');
       const response = await fetch(`/api/chores/${choreId}`, {
@@ -179,24 +132,34 @@ export default function Home() {
     }
   };
 
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || !user) return;
-
-    const choreId = active.id as string;
-    const chore = chores.find(c => c.id === choreId);
-    if (!chore) return;
-
-    // Check if dropped in a different column
-    const isOverTodo = over.id === 'todo';
-    const isOverDone = over.id === 'done';
-
-    // Only toggle if moving between columns
-    if ((isOverDone && !chore.isCompleted) || (isOverTodo && chore.isCompleted)) {
-      // Only the assigned user can toggle
-      if (chore.assignedTo === user.id || !chore.assignedTo) {
-        await handleToggleChore(choreId);
+  const handleEditChore = async (choreId: string, choreData: {
+    title: string;
+    description?: string;
+    frequency: ChoreFrequency;
+    dayOfWeek?: number;
+    dayOfMonth?: number;
+    startDate?: string;
+    assignedTo?: string;
+  }) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`/api/chores/${choreId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(choreData),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setChores(prev => prev.map(c => c.id === choreId ? data.chore : c));
+        setEditingChore(null);
+        setIsAddModalOpen(false);
       }
+    } catch (error) {
+      console.error('Failed to edit chore:', error);
     }
   };
 
@@ -212,8 +175,11 @@ export default function Home() {
     return true;
   });
 
-  const todoChores = filteredChores.filter(c => !c.isCompleted);
-  const doneChores = filteredChores.filter(c => c.isCompleted);
+  // Sort: incomplete first, then by creation date
+  const sortedChores = [...filteredChores].sort((a, b) => {
+    if (a.isCompleted !== b.isCompleted) return a.isCompleted ? 1 : -1;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
 
   // Loading state
   if (isLoading) {
@@ -248,32 +214,54 @@ export default function Home() {
             </div>
           </button>
 
-          {/* Stats */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5 text-orange-500">
-              <Flame className="w-5 h-5" />
-              <span className="font-bold">{userStats?.currentStreak || 0}</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-amber-500">
-              <Trophy className="w-5 h-5" />
-              <span className="font-bold">{userStats?.totalPoints || 0}</span>
-            </div>
+          {/* Nav Links */}
+          <div className="flex items-center gap-1">
+            {team && <LeaderboardDropdown />}
+            
+            <Link
+              href="/weekly"
+              className="flex items-center gap-1.5 px-3 py-2 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-sm font-medium"
+            >
+              <CalendarDays className="w-4 h-4" />
+              <span className="hidden sm:inline">Weekly</span>
+            </Link>
+            
+            {/* Add Chore Button in Header */}
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl hover:shadow-lg hover:scale-[1.02] transition-all text-sm font-medium"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">Add Chore</span>
+            </button>
           </div>
         </div>
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-6">
-        {/* Date & Mini Leaderboard Row */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        {/* Date & Task Progress */}
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
             <Calendar className="w-5 h-5" />
-            <span className="text-lg font-medium">{dateString}</span>
+            <span className="font-medium">{dateString}</span>
           </div>
           
-          {team && <MiniLeaderboard />}
+          {!loadingChores && sortedChores.length > 0 && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-slate-500 dark:text-slate-400">
+                {sortedChores.filter(c => !c.isCompleted).length}/{sortedChores.length} remaining
+              </span>
+              <div className="w-20 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                  style={{ width: `${(sortedChores.filter(c => c.isCompleted).length / sortedChores.length) * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Filter Tabs & Add Button */}
+        {/* Filter Tabs */}
         <div className="flex items-center gap-2 mb-6 flex-wrap">
           {[
             { key: 'mine', label: 'My Tasks' },
@@ -283,7 +271,7 @@ export default function Home() {
             <button
               key={tab.key}
               onClick={() => setFilter(tab.key as typeof filter)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                 filter === tab.key
                   ? 'bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-900 shadow-md'
                   : 'bg-white/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800'
@@ -292,88 +280,81 @@ export default function Home() {
               {tab.label}
             </button>
           ))}
-          
-          <div className="flex-1" />
-          
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl hover:shadow-lg hover:scale-[1.02] transition-all text-sm font-medium"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Add Chore</span>
-          </button>
         </div>
 
-        {/* Kanban Board */}
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* To Do Column */}
-            <DroppableColumn id="todo" title="To Do" count={todoChores.length}>
-              <SortableContext items={todoChores.map(c => c.id)} strategy={verticalListSortingStrategy}>
-                {todoChores.length === 0 ? (
-                  <p className="text-center text-slate-400 dark:text-slate-500 py-8">
-                    No tasks to do 🎉
-                  </p>
-                ) : (
-                  todoChores.map(chore => (
-                    <ChoreCard
-                      key={chore.id}
-                      chore={chore}
-                      onToggle={handleToggleChore}
-                      onDelete={handleDeleteChore}
-                      assignedToName={getAssigneeName(chore.assignedTo)}
-                      showAssignee={filter === 'all'}
-                      canToggle={chore.assignedTo === user?.id || (!chore.assignedTo && chore.userId === user?.id)}
-                      currentUserId={user?.id}
-                    />
-                  ))
-                )}
-              </SortableContext>
-            </DroppableColumn>
+        {/* Chores List */}
+        <div className="space-y-3">
+          {loadingChores ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
+            </div>
+          ) : sortedChores.length === 0 ? (
+            <div className="text-center py-12 bg-white/60 dark:bg-slate-900/40 rounded-2xl border border-slate-200/50 dark:border-slate-800/50">
+              <p className="text-slate-500 dark:text-slate-400 text-lg">No chores yet</p>
+              <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">Add your first chore to get started!</p>
+            </div>
+          ) : (
+            sortedChores.map(chore => (
+              <ChoreCard
+                key={chore.id}
+                chore={chore}
+                onToggle={handleToggleChore}
+                onDelete={handleDeleteChore}
+                onEdit={(c) => { setEditingChore(c); setIsAddModalOpen(true); }}
+                assignedToName={getAssigneeName(chore.assignedTo)}
+                showAssignee={filter === 'all'}
+                canToggle={chore.assignedTo === user?.id || (!chore.assignedTo && chore.userId === user?.id)}
+                currentUserId={user?.id}
+              />
+            ))
+          )}
+        </div>
 
-            {/* Done Column */}
-            <DroppableColumn id="done" title="Done" count={doneChores.length}>
-              <SortableContext items={doneChores.map(c => c.id)} strategy={verticalListSortingStrategy}>
-                {doneChores.length === 0 ? (
-                  <p className="text-center text-slate-400 dark:text-slate-500 py-8">
-                    Complete tasks to see them here
-                  </p>
-                ) : (
-                  doneChores.map(chore => (
-                    <ChoreCard
-                      key={chore.id}
-                      chore={chore}
-                      onToggle={handleToggleChore}
-                      onDelete={handleDeleteChore}
-                      assignedToName={getAssigneeName(chore.assignedTo)}
-                      showAssignee={filter === 'all'}
-                      canToggle={chore.assignedTo === user?.id || (!chore.assignedTo && chore.userId === user?.id)}
-                      currentUserId={user?.id}
-                    />
-                  ))
-                )}
-              </SortableContext>
-            </DroppableColumn>
+        {/* Stats & Leaderboard Section */}
+        <div className="mt-8 space-y-4">
+          {/* Your Stats */}
+          <div className="bg-white/80 dark:bg-slate-900/60 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 p-4">
+            <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Your Stats</h3>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                  <Flame className="w-5 h-5 text-orange-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{userStats?.currentStreak || 0}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Day Streak</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                  <Trophy className="w-5 h-5 text-amber-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{userStats?.totalPoints || 0}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Total Points</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{userStats?.totalCompleted || 0}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Completed</p>
+                </div>
+              </div>
+            </div>
           </div>
-        </DndContext>
-
-        {/* Loading chores indicator */}
-        {loadingChores && (
-          <div className="flex justify-center py-8">
-            <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
-          </div>
-        )}
+        </div>
       </main>
 
       {/* Modals */}
       <AddChoreModal
         isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
+        onClose={() => { setIsAddModalOpen(false); setEditingChore(null); }}
         onAdd={handleAddChore}
+        onEdit={handleEditChore}
+        editingChore={editingChore}
         teamMembers={teamMembers}
       />
 

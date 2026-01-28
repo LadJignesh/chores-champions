@@ -12,6 +12,7 @@ export interface IChore extends Document {
   description?: string;
   frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly';
   dayOfWeek?: number;
+  daysOfWeek?: number[]; // Array for multiple days per week
   dayOfMonth?: number;
   startDate?: Date; // When the chore schedule starts (for non-daily)
   isCompleted: boolean;
@@ -36,6 +37,7 @@ const ChoreSchema = new Schema<IChore>({
   description: { type: String },
   frequency: { type: String, enum: ['daily', 'weekly', 'biweekly', 'monthly'], required: true },
   dayOfWeek: { type: Number, min: 0, max: 6 },
+  daysOfWeek: { type: [Number], default: undefined },
   dayOfMonth: { type: Number, min: 1, max: 31 },
   startDate: { type: Date },
   isCompleted: { type: Boolean, default: false },

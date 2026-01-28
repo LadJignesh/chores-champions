@@ -5,7 +5,8 @@ export interface Chore {
   title: string;
   description?: string;
   frequency: ChoreFrequency;
-  dayOfWeek?: number; // 0-6 for weekly/biweekly chores (0 = Sunday)
+  dayOfWeek?: number; // 0-6 for weekly/biweekly chores (0 = Sunday) - legacy single day
+  daysOfWeek?: number[]; // Array of days 0-6 for multiple days per week
   dayOfMonth?: number; // 1-31 for monthly chores
   startDate?: string; // ISO date string - when the chore schedule starts (for non-daily)
   isCompleted: boolean;

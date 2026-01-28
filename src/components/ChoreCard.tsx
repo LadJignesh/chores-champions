@@ -3,44 +3,44 @@
 import { Chore } from '@/types/chore';
 import { getFrequencyLabel, getDayName } from '@/lib/utils';
 import { getPointsForChore } from '@/lib/gamification';
-import { CheckCircle2, Circle, Trash2, Calendar, Clock, Zap, User, GripVertical, Lock } from 'lucide-react';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import { CheckCircle2, Circle, Trash2, Calendar, Clock, Zap, User, Lock, Pencil } from 'lucide-react';
 
 interface ChoreCardProps {
   chore: Chore;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
+  onEdit?: (chore: Chore) => void;
   assignedToName?: string;
   showAssignee?: boolean;
   canToggle?: boolean;
   currentUserId?: string;
 }
 
-export function ChoreCard({ chore, onToggle, onDelete, assignedToName, showAssignee, canToggle = true, currentUserId }: ChoreCardProps) {
+export function ChoreCard({ chore, onToggle, onDelete, onEdit, assignedToName, showAssignee, canToggle = true }: ChoreCardProps) {
   const points = getPointsForChore(chore.frequency);
   
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: chore.id });
-  
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
+  const DAY_SHORT_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   
   const getScheduleInfo = () => {
-    if (chore.frequency === 'weekly' && chore.dayOfWeek !== undefined) {
-      return `Every ${getDayName(chore.dayOfWeek)}`;
+    if (chore.frequency === 'weekly') {
+      // Support multiple days
+      if (chore.daysOfWeek && chore.daysOfWeek.length > 0) {
+        const dayNames = chore.daysOfWeek.map(d => DAY_SHORT_NAMES[d]).join(', ');
+        return `Every ${dayNames}`;
+      }
+      if (chore.dayOfWeek !== undefined) {
+        return `Every ${getDayName(chore.dayOfWeek)}`;
+      }
     }
-    if (chore.frequency === 'biweekly' && chore.dayOfWeek !== undefined) {
-      return `Every other ${getDayName(chore.dayOfWeek)}`;
+    if (chore.frequency === 'biweekly') {
+      // Support multiple days
+      if (chore.daysOfWeek && chore.daysOfWeek.length > 0) {
+        const dayNames = chore.daysOfWeek.map(d => DAY_SHORT_NAMES[d]).join(', ');
+        return `Every other ${dayNames}`;
+      }
+      if (chore.dayOfWeek !== undefined) {
+        return `Every other ${getDayName(chore.dayOfWeek)}`;
+      }
     }
     if (chore.frequency === 'monthly' && chore.dayOfMonth) {
       return `${chore.dayOfMonth}${getOrdinalSuffix(chore.dayOfMonth)} of each month`;
@@ -78,31 +78,19 @@ export function ChoreCard({ chore, onToggle, onDelete, assignedToName, showAssig
 
   return (
     <div 
-      ref={setNodeRef}
-      style={style}
-      className={`group relative overflow-hidden rounded-2xl border transition-all shadow-sm hover:shadow-lg ${
+      className={`group relative overflow-hidden rounded-2xl border transition-all shadow-sm hover:shadow-md ${
         chore.isCompleted
           ? 'bg-slate-50/80 dark:bg-slate-900/60 border-slate-200/70 dark:border-slate-800/70'
           : 'bg-white/90 dark:bg-slate-900/80 border-slate-200/80 dark:border-slate-800/70'
-      } ${isDragging ? 'shadow-xl ring-2 ring-indigo-500/50' : ''}`}
+      }`}
     >
       <div className={`absolute left-0 top-0 h-full w-1 bg-gradient-to-b ${getFrequencyAccent()}`} />
-      <div className="flex items-start gap-2 p-4 sm:p-5">
-        {/* Drag Handle */}
-        <button
-          {...attributes}
-          {...listeners}
-          className="mt-1 flex-shrink-0 p-1 cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 rounded transition-colors touch-none"
-          aria-label="Drag to reorder"
-        >
-          <GripVertical className="w-5 h-5" />
-        </button>
-        
-        {/* Toggle Button */}
+      <div className="flex items-start gap-3 p-4 sm:p-5">
+        {/* Toggle Checkbox */}
         <button
           onClick={() => canToggle && onToggle(chore.id)}
           disabled={!canToggle}
-          className={`mt-0.5 flex-shrink-0 rounded-full p-1.5 transition-all ${
+          className={`mt-0.5 flex-shrink-0 rounded-full p-1 transition-all ${
             canToggle 
               ? 'hover:scale-110 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer' 
               : 'cursor-not-allowed opacity-60'
@@ -166,13 +154,24 @@ export function ChoreCard({ chore, onToggle, onDelete, assignedToName, showAssig
           </div>
         </div>
 
-        <button
-          onClick={() => onDelete(chore.id)}
-          className="flex-shrink-0 p-2 text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 rounded-lg transition-all hover:bg-rose-50/80 dark:hover:bg-rose-500/10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
-          aria-label="Delete chore"
-        >
-          <Trash2 className="w-5 h-5" />
-        </button>
+        <div className="flex flex-col gap-1 flex-shrink-0">
+          {onEdit && (
+            <button
+              onClick={() => onEdit(chore)}
+              className="p-2 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 rounded-lg transition-all hover:bg-indigo-50/80 dark:hover:bg-indigo-500/10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+              aria-label="Edit chore"
+            >
+              <Pencil className="w-5 h-5" />
+            </button>
+          )}
+          <button
+            onClick={() => onDelete(chore.id)}
+            className="p-2 text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 rounded-lg transition-all hover:bg-rose-50/80 dark:hover:bg-rose-500/10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+            aria-label="Delete chore"
+          >
+            <Trash2 className="w-5 h-5" />
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -243,6 +243,7 @@ function formatChoreResponse(chore: any) {
     description: chore.description,
     frequency: chore.frequency,
     dayOfWeek: chore.dayOfWeek,
+    daysOfWeek: chore.daysOfWeek,
     dayOfMonth: chore.dayOfMonth,
     isCompleted: chore.isCompleted,
     lastCompleted: chore.lastCompleted?.toISOString(),

@@ -18,6 +18,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
     
+    // Check if requesting all chores (for weekly table)
+    const { searchParams } = new URL(request.url);
+    const fetchAll = searchParams.get('all') === 'true';
+    
     await dbConnect();
     
     const user = await User.findById(payload.userId);
@@ -45,13 +49,20 @@ export async function GET(request: NextRequest) {
       }
       
       if (chore.frequency === 'weekly') {
-        // Show on the specified day of week
+        // Support both single day (dayOfWeek) and multiple days (daysOfWeek)
+        if (chore.daysOfWeek && chore.daysOfWeek.length > 0) {
+          return chore.daysOfWeek.includes(currentDayOfWeek);
+        }
         return chore.dayOfWeek === currentDayOfWeek;
       }
       
       if (chore.frequency === 'biweekly') {
-        // Show every 2 weeks on the specified day
-        if (chore.dayOfWeek !== currentDayOfWeek) return false;
+        // Check if today matches any of the specified days
+        const matchesDay = chore.daysOfWeek && chore.daysOfWeek.length > 0
+          ? chore.daysOfWeek.includes(currentDayOfWeek)
+          : chore.dayOfWeek === currentDayOfWeek;
+        
+        if (!matchesDay) return false;
         
         // Calculate weeks since start date
         const startDate = chore.startDate ? new Date(chore.startDate) : new Date(chore.createdAt);
@@ -94,8 +105,8 @@ export async function GET(request: NextRequest) {
       return chore;
     }));
     
-    // Filter chores to only show those scheduled for today
-    const scheduledChores = updatedChores.filter(isChoreScheduledForToday);
+    // Filter chores to only show those scheduled for today (unless ?all=true)
+    const scheduledChores = fetchAll ? updatedChores : updatedChores.filter(isChoreScheduledForToday);
     
     return NextResponse.json({
       success: true,
@@ -105,6 +116,7 @@ export async function GET(request: NextRequest) {
         description: c.description,
         frequency: c.frequency,
         dayOfWeek: c.dayOfWeek,
+        daysOfWeek: c.daysOfWeek,
         dayOfMonth: c.dayOfMonth,
         startDate: c.startDate?.toISOString(),
         isCompleted: c.isCompleted,
@@ -138,7 +150,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
     
-    const { title, description, frequency, dayOfWeek, dayOfMonth, startDate, assignedTo } = await request.json();
+    const { title, description, frequency, dayOfWeek, daysOfWeek, dayOfMonth, startDate, assignedTo } = await request.json();
     
     if (!title || !frequency) {
       return NextResponse.json({ error: 'Title and frequency are required' }, { status: 400 });
@@ -149,6 +161,7 @@ export async function POST(request: NextRequest) {
       description,
       frequency,
       dayOfWeek,
+      daysOfWeek: daysOfWeek && daysOfWeek.length > 0 ? daysOfWeek : undefined,
       dayOfMonth,
       startDate: startDate ? new Date(startDate) : undefined,
       userId: user._id,
@@ -169,6 +182,7 @@ export async function POST(request: NextRequest) {
         description: chore.description,
         frequency: chore.frequency,
         dayOfWeek: chore.dayOfWeek,
+        daysOfWeek: chore.daysOfWeek,
         dayOfMonth: chore.dayOfMonth,
         startDate: chore.startDate?.toISOString(),
         isCompleted: chore.isCompleted,

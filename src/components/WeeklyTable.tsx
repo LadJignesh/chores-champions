@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Chore } from '@/types/chore';
 import { CheckCircle2, Circle, Users, User } from 'lucide-react';
 
@@ -14,9 +14,31 @@ interface WeeklyTableProps {
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const FULL_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+// Color palette for different team members
+const MEMBER_COLORS = [
+  { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-300', border: 'border-l-blue-500' },
+  { bg: 'bg-purple-100 dark:bg-purple-900/30', text: 'text-purple-700 dark:text-purple-300', border: 'border-l-purple-500' },
+  { bg: 'bg-pink-100 dark:bg-pink-900/30', text: 'text-pink-700 dark:text-pink-300', border: 'border-l-pink-500' },
+  { bg: 'bg-orange-100 dark:bg-orange-900/30', text: 'text-orange-700 dark:text-orange-300', border: 'border-l-orange-500' },
+  { bg: 'bg-teal-100 dark:bg-teal-900/30', text: 'text-teal-700 dark:text-teal-300', border: 'border-l-teal-500' },
+  { bg: 'bg-rose-100 dark:bg-rose-900/30', text: 'text-rose-700 dark:text-rose-300', border: 'border-l-rose-500' },
+  { bg: 'bg-cyan-100 dark:bg-cyan-900/30', text: 'text-cyan-700 dark:text-cyan-300', border: 'border-l-cyan-500' },
+  { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-300', border: 'border-l-amber-500' },
+];
+
 export function WeeklyTable({ chores, todayChores, onToggle, currentUserId }: WeeklyTableProps) {
   const [showAllMembers, setShowAllMembers] = useState(false);
   const today = new Date().getDay();
+
+  // Create a map of user IDs to colors
+  const userColorMap = useMemo(() => {
+    const uniqueUserIds = [...new Set(chores.map(c => c.assignedTo || c.userId))];
+    const colorMap = new Map<string, typeof MEMBER_COLORS[0]>();
+    uniqueUserIds.forEach((userId, index) => {
+      colorMap.set(userId, MEMBER_COLORS[index % MEMBER_COLORS.length]);
+    });
+    return colorMap;
+  }, [chores]);
 
   // Filter chores by user unless showing all
   const filteredChores = showAllMembers 
@@ -129,16 +151,28 @@ export function WeeklyTable({ chores, todayChores, onToggle, currentUserId }: We
                           const isToggleable = canToggle(chore) && isToday;
                           // Only show completion status for today
                           const isCompleted = isToday ? getTodayCompletionStatus(chore.id) : false;
+                          const isOwnTask = chore.assignedTo === currentUserId || (!chore.assignedTo && chore.userId === currentUserId);
+                          const memberColor = userColorMap.get(chore.assignedTo || chore.userId);
+                          
+                          // Determine background color
+                          const getBgClass = () => {
+                            if (isToday && isCompleted) {
+                              return 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300';
+                            }
+                            if (showAllMembers && !isOwnTask && memberColor) {
+                              return `${memberColor.bg} ${memberColor.text}`;
+                            }
+                            if (isToday) {
+                              return 'bg-indigo-100/50 dark:bg-indigo-800/30 text-slate-700 dark:text-slate-300';
+                            }
+                            return 'bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400';
+                          };
                           
                           return (
                             <div
                               key={chore.id}
-                              className={`flex items-start gap-1.5 p-1.5 rounded-lg text-xs transition-colors ${
-                                isToday && isCompleted
-                                  ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300'
-                                  : isToday
-                                  ? 'bg-indigo-100/50 dark:bg-indigo-800/30 text-slate-700 dark:text-slate-300'
-                                  : 'bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400'
+                              className={`flex items-start gap-1.5 p-1.5 rounded-lg text-xs transition-colors ${getBgClass()} ${
+                                showAllMembers && !isOwnTask && memberColor ? `border-l-2 ${memberColor.border}` : ''
                               }`}
                             >
                               {isToday && (

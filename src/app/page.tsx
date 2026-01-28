@@ -7,7 +7,7 @@ import { AddChoreModal } from '@/components/AddChoreModal';
 import { ProfileModal } from '@/components/ProfileModal';
 import { LeaderboardDropdown } from '@/components/LeaderboardDropdown';
 import { Chore, ChoreFrequency } from '@/types/chore';
-import { Plus, Calendar, Flame, Trophy, Loader2, CheckCircle2, CalendarDays } from 'lucide-react';
+import { Plus, Calendar, Flame, Trophy, Loader2, CheckCircle2, CalendarDays, Sparkles } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 import Link from 'next/link';
@@ -200,22 +200,31 @@ export default function Home() {
       {/* Minimal Sticky Header */}
       <header className="sticky top-0 z-40 bg-white/80 dark:bg-slate-950/80 backdrop-blur-lg border-b border-slate-200/50 dark:border-slate-800/50">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          {/* Profile Button */}
-          <button 
-            onClick={() => setIsProfileOpen(true)} 
-            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
-          >
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold">
-              {user?.name?.charAt(0).toUpperCase()}
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:shadow-indigo-500/40 transition-shadow">
+              <Sparkles className="w-5 h-5 text-white" />
             </div>
-            <div className="text-left hidden sm:block">
-              <p className="font-semibold text-slate-800 dark:text-slate-100">{user?.name}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">{team?.name || 'Personal'}</p>
+            <div className="hidden sm:block">
+              <h1 className="text-lg font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Chores Champions
+              </h1>
             </div>
-          </button>
+          </Link>
 
           {/* Nav Links */}
           <div className="flex items-center gap-1">
+            {/* Profile Button */}
+            <button 
+              onClick={() => setIsProfileOpen(true)} 
+              className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            >
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
+                {user?.name?.charAt(0).toUpperCase()}
+              </div>
+              <span className="hidden md:inline text-sm font-medium text-slate-700 dark:text-slate-300">{user?.name}</span>
+            </button>
+            
             {team && <LeaderboardDropdown />}
             
             <Link

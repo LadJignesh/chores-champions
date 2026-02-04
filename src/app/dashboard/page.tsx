@@ -10,7 +10,7 @@ import { Loader2, LayoutDashboard } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
 
-export default function Home() {
+export default function DashboardPage() {
   const { user, team, isAuthenticated, isLoading } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
@@ -30,7 +30,7 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
       <header className="sticky top-0 z-40 bg-white/80 dark:bg-slate-950/80 backdrop-blur-lg border-b border-slate-200/50 dark:border-slate-800/50">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 group">
+          <Link href="/dashboard" className="flex items-center gap-2 group">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:shadow-indigo-500/40 transition-shadow">
               <LayoutDashboard className="w-5 h-5 text-white" />
             </div>

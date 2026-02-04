@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Menu, ShoppingBag, CalendarDays, Sparkles, X } from 'lucide-react';
+import { Menu, ShoppingBag, CalendarDays, Sparkles, Dumbbell, LayoutDashboard, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -15,6 +15,12 @@ interface NavItem {
 const navItems: NavItem[] = [
   {
     href: '/',
+    label: 'Dashboard',
+    icon: <LayoutDashboard className="w-4 h-4" />,
+    color: 'text-pink-500',
+  },
+  {
+    href: '/chores',
     label: 'Chores',
     icon: <Sparkles className="w-4 h-4" />,
     color: 'text-indigo-500',
@@ -30,6 +36,12 @@ const navItems: NavItem[] = [
     label: 'Weekly',
     icon: <CalendarDays className="w-4 h-4" />,
     color: 'text-purple-500',
+  },
+  {
+    href: '/exercise',
+    label: 'Exercise',
+    icon: <Dumbbell className="w-4 h-4" />,
+    color: 'text-blue-500',
   },
 ];
 

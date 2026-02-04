@@ -27,7 +27,7 @@ const MEMBER_COLORS = [
 ];
 
 export function WeeklyTable({ chores, todayChores, onToggle, currentUserId }: WeeklyTableProps) {
-  const [showAllMembers, setShowAllMembers] = useState(false);
+  const [showAllMembers, setShowAllMembers] = useState(true);
   const today = new Date().getDay();
 
   // Create a map of user IDs to colors
